@@ -9,11 +9,8 @@ public class Canvas extends JPanel {
     private Font font;
     private int step;
     private boolean isHot = false;
-    private Listener listener;
 
     public Canvas(){
-        listener = new Listener();
-        addMouseListener(listener);
         setBackground(Color.LIGHT_GRAY);
         font = new Font(Font.DIALOG,Font.BOLD,27);
         step = 1;
@@ -66,39 +63,5 @@ public class Canvas extends JPanel {
         }
     }
 
-    private class Listener extends MouseAdapter
-    {
-        @Override
-        public void mouseClicked(MouseEvent e)
-        {
-        }
-
-        @Override
-        public void mousePressed(MouseEvent e)
-        {
-            isHot = true;
-        }
-
-        @Override
-        public void mouseReleased(MouseEvent e)
-        {
-            if(isHot)
-            {
-                draw(1);
-            }
-        }
-
-        @Override
-        public void mouseEntered(MouseEvent e)
-        {
-
-        }
-
-        @Override
-        public void mouseExited(MouseEvent e)
-        {
-            isHot = false;
-        }
-    }
 
 }

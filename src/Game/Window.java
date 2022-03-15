@@ -12,8 +12,10 @@ import java.awt.event.*;
  */
 public class Window extends JFrame {
     //Private:
-    Board playerBoard;
+    PlayerBoard playerBoard;
     Board enemyBoard;
+
+    SelectBoatListener selectBoatListener;
 
     /**
      * Constructor of Window class
@@ -38,29 +40,38 @@ public class Window extends JFrame {
     private void initWindow()
     {
         setLayout(new BorderLayout());
-        JOptionPane.showMessageDialog(null, "Controles: R para rotar");
+//        JOptionPane.showMessageDialog(null, "Controles: R para rotar");
 
         JPanel leftSide = new JPanel();
-        playerBoard = new Board();
+        playerBoard = new PlayerBoard();
         add(leftSide, BorderLayout.WEST);
         leftSide.add(playerBoard);
+
+        JPanel boatButtons = new JPanel();
+        selectBoatListener = new SelectBoatListener();
+        for(int i = 0; i < 4; i++)
+        {
+            JButton boatButton = new JButton(Integer.toString(i));
+            boatButton.addActionListener(selectBoatListener);
+            boatButtons.add(boatButton);
+        }
+        leftSide.add(boatButtons);
 
         JPanel rightSide = new JPanel();
         enemyBoard = new Board();
         rightSide.add(enemyBoard);
         add(rightSide, BorderLayout.EAST);
 
-        Canvas canvas = new Canvas();
-        add(canvas);
     }
 
     /**
      */
-    private class LineInputListener implements ActionListener
+    private class SelectBoatListener implements ActionListener
     {
         @Override
         public void actionPerformed(ActionEvent e)
         {
+            playerBoard.setTypeSelected(Integer.parseInt(((JButton)e.getSource()).getText()));
         }
     }
 
