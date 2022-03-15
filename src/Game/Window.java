@@ -3,6 +3,7 @@ package Game;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
+import java.util.ArrayList;
 
 /**
  * Main window class
@@ -15,7 +16,7 @@ public class Window extends JFrame
     //Private:
     int typeSelected = 0;
     boolean horizontalOrientation = true;
-    boolean isPlacingBoats = true;
+    boolean placingBoats = true;
     boolean canSetBoat = false;
 
     JButton[] typeButtons;
@@ -24,8 +25,12 @@ public class Window extends JFrame
     Box[][] boats;
 
     Box[][] playerBoxes;
+    Box[][] enemyBoxes;
 
     SelectBoatListener selectBoatListener;
+    EnemyBoxListener enemyBoxListener;
+
+    ArrayList<Integer> availableShots;
 
     /**
      * Constructor of Window class
@@ -55,22 +60,22 @@ public class Window extends JFrame
         JPanel playerBoard = new JPanel();
         playerBoard.setPreferredSize(new Dimension(500, 500));
         playerBoard.setLayout(new GridLayout(10, 1));
-        JPanel[] rows = new JPanel[10];
+        JPanel[] playerRows = new JPanel[10];
 
         playerBoxes = new Box[10][10];
 
         for(int row = 0; row < playerBoxes.length; row++)
         {
-            rows[row] = new JPanel();
-            rows[row].setLayout(new GridLayout(1, 10));
+            playerRows[row] = new JPanel();
+            playerRows[row].setLayout(new GridLayout(1, 10));
             for(int column = 0; column < playerBoxes[row].length; column++)
             {
                 playerBoxes[row][column] = new Box();
                 playerBoxes[row][column].setPosition(column, row);
                 playerBoxes[row][column].addMouseListener(playerBoxListener);
-                rows[row].add(playerBoxes[row][column]);
+                playerRows[row].add(playerBoxes[row][column]);
             }
-            playerBoard.add(rows[row]);
+            playerBoard.add(playerRows[row]);
         }
         ImageIcon image = new ImageIcon(getClass().getResource("/resources/1.png"));
         playerBoxes[1][2].setIcon(image);
@@ -78,29 +83,23 @@ public class Window extends JFrame
 
         add(leftSide, BorderLayout.WEST);
         leftSide.add(playerBoard);
-
-
         //---------------------------------------------------------------------------------
         typeButtons = new JButton[4];
-        JPanel boatButtons = new JPanel();
+        JPanel middleButtons = new JPanel();
+        middleButtons.setLayout(new BoxLayout(middleButtons, BoxLayout.Y_AXIS));
         selectBoatListener = new SelectBoatListener();
         for(int i = 0; i < 4; i++)
         {
             JButton boatButton = new JButton(Integer.toString(i));
             typeButtons[i] = boatButton;
             boatButton.addActionListener(selectBoatListener);
-            boatButtons.add(boatButton);
+            middleButtons.add(boatButton);
         }
         JButton orientationButton = new JButton("Rotate boat");
         SwitchOrientationListener orientationListener = new SwitchOrientationListener();
         orientationButton.addActionListener(orientationListener);
-        boatButtons.add(orientationButton);
-        leftSide.add(boatButtons);
-
-        JPanel rightSide = new JPanel();
-//        enemyBoard = new Board();
-//        rightSide.add(enemyBoard);
-        add(rightSide, BorderLayout.EAST);
+        middleButtons.add(orientationButton);
+        add(middleButtons);
 
         boats = new Box[4][];
         maxIndexes = new int[4];
@@ -109,6 +108,32 @@ public class Window extends JFrame
             boats[i] = new Box[4-i];
             maxIndexes[i] = 3-i;
         }
+        // ENEMY BOARD ----------------------------------------------------------------------------------
+        enemyBoxListener = new EnemyBoxListener();
+
+        JPanel rightSide = new JPanel();
+
+        JPanel enemyBoard = new JPanel();
+        enemyBoard.setPreferredSize(new Dimension(500, 500));
+        enemyBoard.setLayout(new GridLayout(10, 1));
+        JPanel[] enemyRows = new JPanel[10];
+
+        enemyBoxes = new Box[10][10];
+        for(int row = 0; row < enemyBoxes.length; row++)
+        {
+            enemyRows[row] = new JPanel();
+            enemyRows[row].setLayout(new GridLayout(1, 10));
+            for(int column = 0; column < enemyBoxes[row].length; column++)
+            {
+                enemyBoxes[row][column] = new Box();
+                enemyBoxes[row][column].setPosition(column, row);
+                enemyBoxes[row][column].addActionListener(enemyBoxListener);
+                enemyRows[row].add(enemyBoxes[row][column]);
+            }
+            enemyBoard.add(enemyRows[row]);
+        }
+        rightSide.add(enemyBoard);
+        add(rightSide, BorderLayout.EAST);
     }
 
     private class PlayerBoxListener extends MouseAdapter
@@ -129,7 +154,7 @@ public class Window extends JFrame
         {
             if(((Box)e.getSource()).isPressed && canSetBoat && (maxIndexes[typeSelected] > -1))
             {
-
+                int part = 0;
                 for(int row = 0; row < 10; row++)
                 {
                     for(int column = 0; column < 10; column++)
@@ -139,6 +164,9 @@ public class Window extends JFrame
                             boats[typeSelected][maxIndexes[typeSelected]] = playerBoxes[row][column];
                             playerBoxes[row][column].setOccupied(true);
                             playerBoxes[row][column].setBoat(maxIndexes[typeSelected]);
+                            playerBoxes[row][column].setType(typeSelected);
+                            playerBoxes[row][column].setPart(part);
+                            part++;
                         }
                     }
                 }
@@ -155,13 +183,24 @@ public class Window extends JFrame
                         allBoatsSet = false;
                     }
                 }//TODO: activate a button when all boats are set.
+                if(allBoatsSet)
+                {
+                    placingBoats = false;
+                    for(int y=0; y<playerBoxes.length; y++)
+                    {
+                        for(int x=0; x<playerBoxes[y].length; x++)
+                        {
+                            playerBoxes[y][x].setEnabled(false);
+                        }
+                    }
+                }
             }
         }
 
         @Override
         public void mouseEntered(MouseEvent e)
         {
-            if (isPlacingBoats)
+            if (placingBoats)
             {
                 int boxX = ((Box)e.getSource()).getColumn();
                 int boxY = ((Box)e.getSource()).getRow();
@@ -229,6 +268,38 @@ public class Window extends JFrame
         }
     }
 
+    private class EnemyBoxListener implements ActionListener
+    {
+        @Override
+        public void actionPerformed(ActionEvent e)
+        {
+            Box boxSelected = (Box)e.getSource();
+            int boxX = boxSelected.getColumn();
+            int boxY = boxSelected.getRow();
+            boxSelected.removeActionListener(enemyBoxListener);
+            if(boxSelected.isOccupied) {
+                int type = boxSelected.boatType;
+                int boatIndex = boxSelected.boatIndex;
+                boats[type][boatIndex].setHasBeenHit(true);
+
+                boolean allPartsHit = true;
+                for (int i = 0; i < boats[type].length; i++) {
+                    if (!boats[type][i].hasBeenHit) {
+                        allPartsHit = false;
+                    }
+                }
+                if (allPartsHit) {
+                    for (int i = 0; i < boats[type].length; i++) {
+                        boats[type][i].setState(3);
+                    }
+                } else {
+                    boats[type][boatIndex].setState(2);
+                }
+            }else {
+                boxSelected.setState(0);
+            }
+        }
+    }
 
     private class ExitListener implements ActionListener {
         @Override
