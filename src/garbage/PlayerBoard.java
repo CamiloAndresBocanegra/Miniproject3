@@ -13,7 +13,7 @@ public class PlayerBoard extends Board
         Listener listener = new Listener();
         for(int i = 0; i < buttons.length; i++)
         {
-            buttons[i].addMouseListener(listener);
+            buttons[i][1].addMouseListener(listener);
         }
     }
 
