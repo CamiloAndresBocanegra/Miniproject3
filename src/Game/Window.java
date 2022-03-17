@@ -1,9 +1,15 @@
 package Game;
-
+/*TODO:
+    - add a button to show/hide enemy boats
+    - if i hit a boat, i can shoot again
+    - put images
+    - put timer between shots
+*/
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.util.ArrayList;
+import java.util.Random;
 
 /**
  * Main window class
@@ -20,9 +26,9 @@ public class Window extends JFrame
     boolean canSetBoat = false;
 
     JButton[] typeButtons;
-    int[] maxIndexes;
+    int[] boatsToPlace;
 
-    Box[][] boats;
+    Box[][] playerBoats;
 
     Box[][] playerBoxes;
     Box[][] enemyBoxes;
@@ -30,8 +36,22 @@ public class Window extends JFrame
     SelectBoatListener selectBoatListener;
     EnemyBoxListener enemyBoxListener;
 
-    ArrayList<Integer> availableShots;
+    ArrayList<Integer> boxesToShoot;
 
+    Random RNG;
+
+    /**
+    *   Auxiliar Function that turns a bool value into a 1 if true, and a 0 if false
+     */
+    public int boolToInt(boolean value)
+    {
+        if(value)
+        {
+            return 1;
+        }else{
+            return 0;
+        }
+    }
     /**
      * Constructor of Window class
      */
@@ -77,8 +97,11 @@ public class Window extends JFrame
             }
             playerBoard.add(playerRows[row]);
         }
-        ImageIcon image = new ImageIcon(getClass().getResource("/resources/1.png"));
-        playerBoxes[1][2].setIcon(image);
+        if(false)
+        {
+            ImageIcon image = new ImageIcon(getClass().getResource("/resources/1.png"));
+            playerBoxes[1][2].setIcon(image);
+        }
 
 
         add(leftSide, BorderLayout.WEST);
@@ -101,12 +124,12 @@ public class Window extends JFrame
         middleButtons.add(orientationButton);
         add(middleButtons);
 
-        boats = new Box[4][];
-        maxIndexes = new int[4];
+        playerBoats = new Box[4][];
+        boatsToPlace = new int[4];
         for(int i = 0; i < 4; i++)
         {
-            boats[i] = new Box[4-i];
-            maxIndexes[i] = 3-i;
+            playerBoats[i] = new Box[4-i];
+            boatsToPlace[i] = 3-i;
         }
         // ENEMY BOARD ----------------------------------------------------------------------------------
         enemyBoxListener = new EnemyBoxListener();
@@ -134,6 +157,66 @@ public class Window extends JFrame
         }
         rightSide.add(enemyBoard);
         add(rightSide, BorderLayout.EAST);
+
+        boxesToShoot = new ArrayList<Integer>();
+        for(int i=0; i < 100; i++)
+        {
+            boxesToShoot.add(i);
+        }
+
+        //RANDOMLY PLACING ENEMY BOATS ______________________________________________________________
+        RNG = new Random();
+        for(int boatType=3; boatType >= 0; boatType--)
+        {
+            int boatsOfThisType = 4-boatType;
+            while(boatsOfThisType > 0)
+            {
+                boatsOfThisType--;
+                boolean placeHorizontally = RNG.nextInt(2)==0;
+                //SET POSIBLE PLACES TO PLACE THE BOAT
+                ArrayList<Integer> availablePlaces = new ArrayList<Integer>();
+                int boatLength = boatType + 1;
+                for (int row = 0; row < enemyBoxes.length; row++) {
+                    for (int column = 0; column < enemyBoxes[row].length; column++) {
+                        boolean canBeAvailable = true;
+                        for (int currentPart = 0; currentPart < boatLength; currentPart++) {
+                            if (placeHorizontally) {
+                                if (column + currentPart >= 10 || enemyBoxes[row][column + currentPart].isOccupied) {
+                                    canBeAvailable = false;
+                                }
+                            } else {
+                                if (row + currentPart >= 10 || enemyBoxes[row + currentPart][column].isOccupied) {
+                                    canBeAvailable = false;
+                                }
+                            }
+                        }
+                        if (canBeAvailable) {
+                            availablePlaces.add(row * 10 + column);
+                        }
+                    }
+                }
+                //PICK A RANDOM AVAILABLE PLACE AND SET A BOAT THERE__________________________________________________
+                int chosenIndex = RNG.nextInt(availablePlaces.size());
+                int row = availablePlaces.get(chosenIndex) / 10;
+                int column = availablePlaces.get(chosenIndex) % 10;
+                for (int currentPart = 0; currentPart < boatLength; currentPart++) {
+                    Box thisBox;
+                    if (placeHorizontally) {
+                        thisBox = enemyBoxes[row][column + currentPart];
+                    } else {
+                        thisBox = enemyBoxes[row + currentPart][column];
+                    }
+                    thisBox.isOccupied = true;
+                    thisBox.isHorizontal = placeHorizontally;
+                    thisBox.setState(Box.BOAT);
+                    thisBox.setType(boatType);
+                    thisBox.setBoatIndex(boatsOfThisType);
+                    thisBox.setPart(currentPart);
+                    thisBox.beginningX = column;
+                    thisBox.beginningY = row;
+                }
+            }
+        }
     }
 
     private class PlayerBoxListener extends MouseAdapter
@@ -152,48 +235,54 @@ public class Window extends JFrame
         @Override
         public void mouseReleased(MouseEvent e)
         {
-            if(((Box)e.getSource()).isPressed && canSetBoat && (maxIndexes[typeSelected] > -1))
+            Box boxClicked = (Box)e.getSource();
+            if(boxClicked.isPressed && canSetBoat && (boatsToPlace[typeSelected] > -1))
             {
-                int part = 0;
-                for(int row = 0; row < 10; row++)
+                int beginningX = boxClicked.column;
+                int beginningY = boxClicked.row;
+                int boatLength = typeSelected+1;
+
+                for(int i=0; i<boatLength; i++)
                 {
-                    for(int column = 0; column < 10; column++)
-                    {
-                        if(playerBoxes[row][column].isSelected)
-                        {
-                            boats[typeSelected][maxIndexes[typeSelected]] = playerBoxes[row][column];
-                            playerBoxes[row][column].setOccupied(true);
-                            playerBoxes[row][column].setBoat(maxIndexes[typeSelected]);
-                            playerBoxes[row][column].setType(typeSelected);
-                            playerBoxes[row][column].setPart(part);
-                            part++;
-                        }
-                    }
+                    int column = beginningX + i*boolToInt(horizontalOrientation);
+                    int row = beginningY + i*boolToInt(!horizontalOrientation);
+                    Box currentBox = playerBoxes[row][column];
+                    currentBox.isOccupied = true;
+                    currentBox.boatIndex = boatsToPlace[typeSelected];
+                    currentBox.boatType = typeSelected;
+                    currentBox.isHorizontal = horizontalOrientation;
+                    currentBox.setState(Box.BOAT);
+                    currentBox.setPart(i);
+                    currentBox.beginningX = beginningX;
+                    currentBox.beginningY = beginningY;
                 }
-                maxIndexes[typeSelected] -= 1;
-                if(maxIndexes[typeSelected] == -1)
+                boatsToPlace[typeSelected] -= 1;
+                if(boatsToPlace[typeSelected] == -1)
                 {
                     typeButtons[typeSelected].setEnabled(false);
                 }
                 boolean allBoatsSet = true;
-                for(int i=0; i < maxIndexes.length; i++)
+                for(int i=0; i < boatsToPlace.length; i++)
                 {
-                    if (maxIndexes[i] > -1)
+                    if (boatsToPlace[i] > -1)
                     {
                         allBoatsSet = false;
                     }
                 }//TODO: activate a button when all boats are set.
                 if(allBoatsSet)
                 {
+                    //TODO: start second phase when all boats are set
                     placingBoats = false;
                     for(int y=0; y<playerBoxes.length; y++)
                     {
                         for(int x=0; x<playerBoxes[y].length; x++)
                         {
-                            playerBoxes[y][x].setEnabled(false);
+                            playerBoxes[y][x].setFocusable(false);
                         }
                     }
                 }
+
+                canSetBoat = false;
             }
         }
 
@@ -207,25 +296,15 @@ public class Window extends JFrame
                 int boatLength = typeSelected + 1;
 
                 int boxesSelected = 0;
-                if (horizontalOrientation) {
-                    for(int column = boxX; column-boxX < boatLength; column++)
+                for(int i = 0; i < boatLength; i++)
+                {
+                    int row = boxY + (i * boolToInt(!horizontalOrientation));
+                    int column = boxX + (i * boolToInt(horizontalOrientation));
+                    if((row < 10) && (column < 10) && !playerBoxes[row][column].isOccupied)
                     {
-                        if (column < 10 && !playerBoxes[boxY][column].isOccupied)
-                        {
-                            playerBoxes[boxY][column].setText("1");
-                            boxesSelected++;
-                            playerBoxes[boxY][column].select(true);
-                        }
-                    }
-                }else{
-                    for(int row = boxY; row-boxY < boatLength; row++)
-                    {
-                        if(row < 10 && !playerBoxes[row][boxX].isOccupied)
-                        {
-                            playerBoxes[row][boxX].setText("1");
-                            boxesSelected++;
-                            playerBoxes[row][boxX].select(true);
-                        }
+                        playerBoxes[row][column].setText("1");
+                        boxesSelected++;
+                        playerBoxes[row][column].select(true);
                     }
                 }
                 canSetBoat = (boxesSelected == boatLength);
@@ -243,7 +322,7 @@ public class Window extends JFrame
                     playerBoxes[row][column].select(false);
                     if(!playerBoxes[row][column].isOccupied)
                     {
-                        playerBoxes[row][column].setText("");
+                        playerBoxes[row][column].setText("");//TODO: change to whatever image needs to be
                     }
                 }
             }
@@ -273,31 +352,77 @@ public class Window extends JFrame
         @Override
         public void actionPerformed(ActionEvent e)
         {
-            Box boxSelected = (Box)e.getSource();
-            int boxX = boxSelected.getColumn();
-            int boxY = boxSelected.getRow();
-            boxSelected.removeActionListener(enemyBoxListener);
-            if(boxSelected.isOccupied) {
-                int type = boxSelected.boatType;
-                int boatIndex = boxSelected.boatIndex;
-                boats[type][boatIndex].setHasBeenHit(true);
+            if(!placingBoats)
+            {
+                Box boxSelected = (Box) e.getSource();
+                boxSelected.removeActionListener(enemyBoxListener);
 
-                boolean allPartsHit = true;
-                for (int i = 0; i < boats[type].length; i++) {
-                    if (!boats[type][i].hasBeenHit) {
-                        allPartsHit = false;
+                shootBox(boxSelected, enemyBoxes);
+
+                boolean GameOver = true;
+                for(int row = 0; row < enemyBoxes.length; row++)
+                {
+                    for(int column=0; column < enemyBoxes[row].length; column++)
+                    {
+                        if(enemyBoxes[row][column].state == Box.BOAT)
+                        {
+                            GameOver = false;
+                            break;
+                        }
                     }
+                    if(!GameOver){break;}
                 }
-                if (allPartsHit) {
-                    for (int i = 0; i < boats[type].length; i++) {
-                        boats[type][i].setState(3);
-                    }
-                } else {
-                    boats[type][boatIndex].setState(2);
+
+                if(GameOver)
+                {
+                    //TODO: end game
+                    JOptionPane.showMessageDialog(null, "you win yeah");
+                }else{
+                    int chosenIndex = RNG.nextInt(boxesToShoot.size());
+                    int row = boxesToShoot.get(chosenIndex) / 10;
+                    int column = boxesToShoot.get(chosenIndex) % 10;
+                    boxesToShoot.remove(chosenIndex);
+                    shootBox(playerBoxes[row][column], playerBoxes);
                 }
-            }else {
-                boxSelected.setState(0);
+
             }
+        }
+    }
+
+    public void shootBox(Box target, Box[][]board)
+    {
+        if (target.state == Box.BOAT)
+        {
+            target.hasBeenHit = true;
+            int type = target.boatType;
+
+            int beginningX = target.beginningX;
+            int beginningY = target.beginningY;
+
+            boolean allPartsHit = true;
+            for (int i = 0; i < type+1; i++)
+            {
+                int column = beginningX + (i*boolToInt(target.isHorizontal));
+                int row = beginningY + (i*boolToInt(!target.isHorizontal));
+                if(!board[row][column].hasBeenHit)
+                {
+                    allPartsHit = false;
+                }
+            }
+            if (allPartsHit) {
+                for (int i = 0; i < type+1; i++) {
+                    int column = beginningX + (i*boolToInt(target.isHorizontal));
+                    int row = beginningY + (i*boolToInt(!target.isHorizontal));
+                    board[row][column].setState(Box.SUNKEN);
+                    board[row][column].setText("3");//TODO: put images instead of numbers
+                }
+            } else {
+                target.setState(Box.HIT);
+                target.setText("2");
+            }
+        } else {
+            target.setState(Box.WATER);
+            target.setText("0");
         }
     }
 

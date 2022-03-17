@@ -7,6 +7,9 @@ public class Box extends JButton
 {   //private:
     int row;
     int column;
+    int beginningY;
+    int beginningX;
+
     boolean isHorizontal = false;
     boolean isOccupied = false;
     boolean isSelected = false;
@@ -18,17 +21,16 @@ public class Box extends JButton
     int boatType = 0;
     int boatIndex = -1;
 
-    int WATER = 0;
-    int BOAT = 1;
-    int HIT = 2;
-    int SUNKEN = 3;
+    static int WATER = 0;
+    static int BOAT = 1;
+    static int HIT = 2;
+    static int SUNKEN = 3;
 
     int state;
 
     public void setState(int value)
     {
         state = value;
-        setText(Integer.toString(value));
     }
 
     public void setHasBeenHit(boolean value)
@@ -51,7 +53,7 @@ public class Box extends JButton
         boatType = type;
     }
 
-    public void setBoat(int value)
+    public void setBoatIndex(int value)
     {
         boatIndex = value;
     }
