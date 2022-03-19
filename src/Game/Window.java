@@ -1,6 +1,5 @@
 package Game;
 /*TODO:
-    - add a button to show/hide enemy boats
     - if i hit a boat, i can shoot again
     - put images
     - put timer between shots
@@ -27,8 +26,6 @@ public class Window extends JFrame
 
     JButton[] typeButtons;
     int[] boatsToPlace;
-
-    Box[][] playerBoats;
 
     Box[][] playerBoxes;
     Box[][] enemyBoxes;
@@ -106,7 +103,13 @@ public class Window extends JFrame
 
         add(leftSide, BorderLayout.WEST);
         leftSide.add(playerBoard);
-        //---------------------------------------------------------------------------------
+
+        boatsToPlace = new int[4];
+        for(int type = 0; type < 4; type++)
+        {
+            boatsToPlace[type] = 4-type;
+        }
+        // MIDDLE BUTTONS ---------------------------------------------------------------------------------
         typeButtons = new JButton[4];
         JPanel middleButtons = new JPanel();
         middleButtons.setLayout(new BoxLayout(middleButtons, BoxLayout.Y_AXIS));
@@ -122,15 +125,13 @@ public class Window extends JFrame
         SwitchOrientationListener orientationListener = new SwitchOrientationListener();
         orientationButton.addActionListener(orientationListener);
         middleButtons.add(orientationButton);
+
+        JButton showHideButton = new JButton("Show / Hide");
+        ShowHideListener showHideListener = new ShowHideListener();
+        showHideButton.addActionListener(showHideListener);
+        middleButtons.add(showHideButton);
         add(middleButtons);
 
-        playerBoats = new Box[4][];
-        boatsToPlace = new int[4];
-        for(int i = 0; i < 4; i++)
-        {
-            playerBoats[i] = new Box[4-i];
-            boatsToPlace[i] = 3-i;
-        }
         // ENEMY BOARD ----------------------------------------------------------------------------------
         enemyBoxListener = new EnemyBoxListener();
 
@@ -236,7 +237,7 @@ public class Window extends JFrame
         public void mouseReleased(MouseEvent e)
         {
             Box boxClicked = (Box)e.getSource();
-            if(boxClicked.isPressed && canSetBoat && (boatsToPlace[typeSelected] > -1))
+            if(boxClicked.isPressed && canSetBoat && (boatsToPlace[typeSelected] > 0))
             {
                 int beginningX = boxClicked.column;
                 int beginningY = boxClicked.row;
@@ -248,7 +249,7 @@ public class Window extends JFrame
                     int row = beginningY + i*boolToInt(!horizontalOrientation);
                     Box currentBox = playerBoxes[row][column];
                     currentBox.isOccupied = true;
-                    currentBox.boatIndex = boatsToPlace[typeSelected];
+                    currentBox.boatIndex = boatsToPlace[typeSelected] - 1;
                     currentBox.boatType = typeSelected;
                     currentBox.isHorizontal = horizontalOrientation;
                     currentBox.setState(Box.BOAT);
@@ -257,14 +258,14 @@ public class Window extends JFrame
                     currentBox.beginningY = beginningY;
                 }
                 boatsToPlace[typeSelected] -= 1;
-                if(boatsToPlace[typeSelected] == -1)
+                if(boatsToPlace[typeSelected] == 0)
                 {
                     typeButtons[typeSelected].setEnabled(false);
                 }
                 boolean allBoatsSet = true;
                 for(int i=0; i < boatsToPlace.length; i++)
                 {
-                    if (boatsToPlace[i] > -1)
+                    if (boatsToPlace[i] > 0)
                     {
                         allBoatsSet = false;
                     }
@@ -409,8 +410,10 @@ public class Window extends JFrame
                     allPartsHit = false;
                 }
             }
-            if (allPartsHit) {
-                for (int i = 0; i < type+1; i++) {
+            if (allPartsHit)
+            {
+                for (int i = 0; i < type+1; i++)
+                {
                     int column = beginningX + (i*boolToInt(target.isHorizontal));
                     int row = beginningY + (i*boolToInt(!target.isHorizontal));
                     board[row][column].setState(Box.SUNKEN);
@@ -423,6 +426,31 @@ public class Window extends JFrame
         } else {
             target.setState(Box.WATER);
             target.setText("0");
+        }
+    }
+
+    private class ShowHideListener implements ActionListener
+    {
+        boolean isShowing = false;
+        @Override
+        public void actionPerformed(ActionEvent e)
+        {
+            isShowing = !isShowing;
+            for(int row=0; row < enemyBoxes.length; row++)
+            {
+                for(int column=0; column < enemyBoxes[row].length; column++)
+                {
+                    if(enemyBoxes[row][column].state == Box.BOAT)
+                    {
+                        if(isShowing)
+                        {
+                            enemyBoxes[row][column].setText("1");
+                        }else{
+                            enemyBoxes[row][column].setText("");
+                        }
+                    }
+                }
+            }
         }
     }
 
