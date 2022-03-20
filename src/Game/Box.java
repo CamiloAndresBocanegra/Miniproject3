@@ -21,12 +21,13 @@ public class Box extends JButton
     int boatType = 0;
     int boatIndex = -1;
 
+    int state;
+
+    static int NULL = -1;
     static int WATER = 0;
     static int BOAT = 1;
     static int HIT = 2;
     static int SUNKEN = 3;
-
-    int state;
 
     public void setPosition(int x, int y)
     {

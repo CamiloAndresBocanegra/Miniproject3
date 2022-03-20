@@ -30,6 +30,7 @@ public class Window extends JFrame
 
     SelectBoatListener selectBoatListener;
     EnemyBoxListener enemyBoxListener;
+    ShowHideListener showHideListener;
 
     ArrayList<Integer> boxesToShoot;
 
@@ -69,7 +70,6 @@ public class Window extends JFrame
     {
         PlayerBoxListener playerBoxListener = new PlayerBoxListener();
         setLayout(new BorderLayout());
-//        JOptionPane.showMessageDialog(null, "Controles: R para rotar");
 
         JPanel leftSide = new JPanel();
         JPanel playerBoard = new JPanel();
@@ -97,11 +97,6 @@ public class Window extends JFrame
         add(leftSide, BorderLayout.WEST);
         leftSide.add(playerBoard);
 
-        boatsToPlace = new int[4];
-        for(int type = 0; type < 4; type++)
-        {
-            boatsToPlace[type] = 4-type;
-        }
         // MIDDLE BUTTONS ---------------------------------------------------------------------------------
         typeButtons = new JButton[4];
         JPanel middleButtons = new JPanel();
@@ -120,11 +115,16 @@ public class Window extends JFrame
         middleButtons.add(orientationButton);
 
         JButton showHideButton = new JButton("Show / Hide");
-        ShowHideListener showHideListener = new ShowHideListener();
+        showHideListener = new ShowHideListener();
         showHideButton.addActionListener(showHideListener);
         middleButtons.add(showHideButton);
-        add(middleButtons);
 
+        RestartListener restartListener = new RestartListener();
+        JButton restartButton = new JButton("Restart");
+        restartButton.addActionListener(restartListener);
+        middleButtons.add(restartButton);
+
+        add(middleButtons);
         // ENEMY BOARD ----------------------------------------------------------------------------------
         enemyBoxListener = new EnemyBoxListener();
 
@@ -143,10 +143,7 @@ public class Window extends JFrame
             for(int column = 0; column < enemyBoxes[row].length; column++)
             {
                 enemyBoxes[row][column] = new Box();
-                enemyBoxes[row][column].setPosition(column, row);
                 enemyBoxes[row][column].addActionListener(enemyBoxListener);
-                enemyBoxes[row][column].setIcon(new ImageIcon(getClass().getResource("/resources/empty.png")));
-                enemyBoxes[row][column].setEnabled(false);
                 enemyRows[row].add(enemyBoxes[row][column]);
             }
             enemyBoard.add(enemyRows[row]);
@@ -154,14 +151,13 @@ public class Window extends JFrame
         rightSide.add(enemyBoard);
         add(rightSide, BorderLayout.EAST);
 
-        boxesToShoot = new ArrayList<Integer>();
-        for(int i=0; i < 100; i++)
-        {
-            boxesToShoot.add(i);
-        }
-
-        //RANDOMLY PLACING ENEMY BOATS ______________________________________________________________
+        //INITIALIZE GAME TO STARTING CONDITIONS ____________________________________________________
         RNG = new Random();
+        initializeGame();
+    }
+
+    public void randomlyPlaceBoats()
+    {
         for(int boatType=3; boatType >= 0; boatType--)
         {
             int boatsOfThisType = 4-boatType;
@@ -274,6 +270,50 @@ public class Window extends JFrame
         }else{
             JOptionPane.showMessageDialog(null, "YOU LOST");
         }
+    }
+
+    public void resetBox(Box box)
+    {
+        box.isOccupied = false;
+        box.isSelected = false;
+        box.isPressed = false;
+        box.hasBeenHit = false;
+        box.state = Box.NULL;
+        box.setIcon(new ImageIcon(getClass().getResource("/resources/empty.png")));
+        box.setFocusable(true);
+    }
+
+    public void initializeGame()
+    {
+        for(int i=0; i<100; i++)
+        {
+            int row = i/10;
+            int column = i%10;
+
+            Box enemyBox = enemyBoxes[row][column];
+            enemyBox.setEnabled(false);
+            resetBox(enemyBox);
+
+            Box playerBox = playerBoxes[row][column];
+            resetBox(playerBox);
+        }
+
+        boatsToPlace = new int[4];
+        for(int type = 0; type < 4; type++)
+        {
+            typeButtons[type].setEnabled(true);
+            boatsToPlace[type] = 4-type;
+        }
+
+        boxesToShoot = new ArrayList<Integer>();
+        for(int i=0; i < 100; i++)
+        {
+            boxesToShoot.add(i);
+        }
+        //RANDOMLY PLACING ENEMY BOATS ______________________________________________________________
+        randomlyPlaceBoats();
+        placingBoats = true;
+        showHideListener.isShowing = false;
     }
 
     private class PlayerBoxListener extends MouseAdapter
@@ -436,12 +476,9 @@ public class Window extends JFrame
         @Override
         public void actionPerformed(ActionEvent e)
         {
-            if(!placingBoats)
+            Box boxSelected = (Box) e.getSource();
+            if(!placingBoats && (boxSelected.state == Box.NULL || boxSelected.state == Box.BOAT))
             {
-
-                Box boxSelected = (Box) e.getSource();
-                boxSelected.removeActionListener(enemyBoxListener);
-
                 boolean didHitABoat = shootBox(boxSelected, enemyBoxes);
 
                 boolean GameOver = true;
@@ -528,6 +565,14 @@ public class Window extends JFrame
                     }
                 }
             }
+        }
+    }
+    private class RestartListener implements ActionListener
+    {
+        @Override
+        public void actionPerformed(ActionEvent e)
+        {
+            initializeGame();
         }
     }
 
