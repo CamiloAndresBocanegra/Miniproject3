@@ -1,8 +1,6 @@
 package Game;
 /*TODO:
-    - if i hit a boat, i can shoot again
-    - put images
-    - put timer between shots
+    - restart the game (optional)
 */
 import javax.swing.*;
 import java.awt.*;
@@ -90,16 +88,11 @@ public class Window extends JFrame
                 playerBoxes[row][column] = new Box();
                 playerBoxes[row][column].setPosition(column, row);
                 playerBoxes[row][column].addMouseListener(playerBoxListener);
+                playerBoxes[row][column].setIcon(new ImageIcon(getClass().getResource("/resources/empty.png")));
                 playerRows[row].add(playerBoxes[row][column]);
             }
             playerBoard.add(playerRows[row]);
         }
-        if(false)
-        {
-            ImageIcon image = new ImageIcon(getClass().getResource("/resources/1.png"));
-            playerBoxes[1][2].setIcon(image);
-        }
-
 
         add(leftSide, BorderLayout.WEST);
         leftSide.add(playerBoard);
@@ -116,7 +109,7 @@ public class Window extends JFrame
         selectBoatListener = new SelectBoatListener();
         for(int i = 0; i < 4; i++)
         {
-            JButton boatButton = new JButton(Integer.toString(i));
+            JButton boatButton = new JButton(new ImageIcon(getClass().getResource("/resources/"+i+".png")));
             typeButtons[i] = boatButton;
             boatButton.addActionListener(selectBoatListener);
             middleButtons.add(boatButton);
@@ -152,6 +145,8 @@ public class Window extends JFrame
                 enemyBoxes[row][column] = new Box();
                 enemyBoxes[row][column].setPosition(column, row);
                 enemyBoxes[row][column].addActionListener(enemyBoxListener);
+                enemyBoxes[row][column].setIcon(new ImageIcon(getClass().getResource("/resources/empty.png")));
+                enemyBoxes[row][column].setEnabled(false);
                 enemyRows[row].add(enemyBoxes[row][column]);
             }
             enemyBoard.add(enemyRows[row]);
@@ -165,7 +160,7 @@ public class Window extends JFrame
             boxesToShoot.add(i);
         }
 
-        //RANDOMLY PLACING ENEMY BOATS ______________________________________________________________
+        //RANDOMLY PLACING ENEMY BOATS ___________________h___________________________________________
         RNG = new Random();
         for(int boatType=3; boatType >= 0; boatType--)
         {
@@ -220,6 +215,67 @@ public class Window extends JFrame
         }
     }
 
+    /**
+     * return true if there is a boat in the target, false otherwise
+     */
+    public boolean shootBox(Box target, Box[][]board)
+    {
+        if (target.state == Box.BOAT)
+        {
+            target.hasBeenHit = true;
+            int type = target.boatType;
+
+            int beginningX = target.beginningX;
+            int beginningY = target.beginningY;
+
+            boolean allPartsHit = true;
+            for (int i = 0; i < type+1; i++)
+            {
+                int column = beginningX + (i*boolToInt(target.isHorizontal));
+                int row = beginningY + (i*boolToInt(!target.isHorizontal));
+                if(!board[row][column].hasBeenHit)
+                {
+                    allPartsHit = false;
+                }
+            }
+            if (allPartsHit)
+            {
+                for (int i = 0; i < type+1; i++)
+                {
+                    int column = beginningX + (i*boolToInt(target.isHorizontal));
+                    int row = beginningY + (i*boolToInt(!target.isHorizontal));
+                    board[row][column].setState(Box.SUNKEN);
+                    board[row][column].setIcon(new ImageIcon(getClass().getResource("/resources/sunken.png")));
+                }
+            } else {
+                target.setState(Box.HIT);
+                target.setIcon(new ImageIcon(getClass().getResource("/resources/hit.png")));
+            }
+            return true;
+        } else {
+            target.setState(Box.WATER);
+            target.setIcon(new ImageIcon(getClass().getResource("/resources/water.png")));
+            return false;
+        }
+    }
+
+    public void endGame(boolean winState)
+    {
+        for(int row=0; row<enemyBoxes.length;row++)
+        {
+            for(int column=0; column<enemyBoxes[row].length;column++)
+            {
+                enemyBoxes[row][column].setEnabled(false);
+            }
+        }
+        if(winState)
+        {
+            JOptionPane.showMessageDialog(null, "YOU WIN");
+        }else{
+            JOptionPane.showMessageDialog(null, "YOU LOST");
+        }
+    }
+
     private class PlayerBoxListener extends MouseAdapter
     {
         @Override
@@ -230,7 +286,7 @@ public class Window extends JFrame
         @Override
         public void mousePressed(MouseEvent e)
         {
-            ((Box)e.getSource()).setPressed(true);
+            ((Box)e.getSource()).isPressed = true;
         }
 
         @Override
@@ -281,6 +337,14 @@ public class Window extends JFrame
                             playerBoxes[y][x].setFocusable(false);
                         }
                     }
+
+                    for(int row=0; row < enemyBoxes.length; row++)
+                    {
+                        for(int column=0; column < enemyBoxes[row].length; column++)
+                        {
+                            enemyBoxes[row][column].setEnabled(true);
+                        }
+                    }
                 }
 
                 canSetBoat = false;
@@ -296,6 +360,13 @@ public class Window extends JFrame
                 int boxY = ((Box)e.getSource()).getRow();
                 int boatLength = typeSelected + 1;
 
+                String orientation;
+                if (horizontalOrientation)
+                {
+                    orientation = "h";
+                }else{
+                    orientation = "v";
+                }
                 int boxesSelected = 0;
                 for(int i = 0; i < boatLength; i++)
                 {
@@ -303,9 +374,11 @@ public class Window extends JFrame
                     int column = boxX + (i * boolToInt(horizontalOrientation));
                     if((row < 10) && (column < 10) && !playerBoxes[row][column].isOccupied)
                     {
-                        playerBoxes[row][column].setText("1");
+                        String resPath = "/resources/"+ orientation + typeSelected + i +".png";
+                        ImageIcon image = new ImageIcon(getClass().getResource(resPath));
+                        playerBoxes[row][column].setIcon(image);
                         boxesSelected++;
-                        playerBoxes[row][column].select(true);
+                        playerBoxes[row][column].isSelected = true;
                     }
                 }
                 canSetBoat = (boxesSelected == boatLength);
@@ -315,16 +388,20 @@ public class Window extends JFrame
         @Override
         public void mouseExited(MouseEvent e)
         {
+            int boxX = ((Box)e.getSource()).getColumn();
+            int boxY = ((Box)e.getSource()).getRow();
             ((Box)e.getSource()).setPressed(false);
-            for(int row = 0; row < 10; row++)
+            int boatLength = typeSelected + 1;
+            for(int i = 0; i < boatLength; i++)
             {
-                for(int column = 0; column < 10; column++)
+                int row = boxY + (i * boolToInt(!horizontalOrientation));
+                int column = boxX + (i * boolToInt(horizontalOrientation));
+                if((row < 10) && (column < 10) && !playerBoxes[row][column].isOccupied)
                 {
-                    playerBoxes[row][column].select(false);
-                    if(!playerBoxes[row][column].isOccupied)
-                    {
-                        playerBoxes[row][column].setText("");//TODO: change to whatever image needs to be
-                    }
+                    String resPath = "/resources/empty.png";
+                    ImageIcon image = new ImageIcon(getClass().getResource(resPath));
+                    playerBoxes[row][column].setIcon(image);
+                    playerBoxes[row][column].select(true);
                 }
             }
         }
@@ -344,7 +421,14 @@ public class Window extends JFrame
         @Override
         public void actionPerformed(ActionEvent e)
         {
-            typeSelected = Integer.parseInt(((JButton)e.getSource()).getText());
+//            typeSelected = Integer.parseInt(((JButton)e.getSource()).getText());
+            for(int i=0; i < typeButtons.length; i++)
+            {
+                if(typeButtons[i] == e.getSource())
+                {
+                    typeSelected = i;
+                }
+            }
         }
     }
 
@@ -355,10 +439,11 @@ public class Window extends JFrame
         {
             if(!placingBoats)
             {
+
                 Box boxSelected = (Box) e.getSource();
                 boxSelected.removeActionListener(enemyBoxListener);
 
-                shootBox(boxSelected, enemyBoxes);
+                boolean didHitABoat = shootBox(boxSelected, enemyBoxes);
 
                 boolean GameOver = true;
                 for(int row = 0; row < enemyBoxes.length; row++)
@@ -368,64 +453,46 @@ public class Window extends JFrame
                         if(enemyBoxes[row][column].state == Box.BOAT)
                         {
                             GameOver = false;
-                            break;
                         }
                     }
-                    if(!GameOver){break;}
                 }
 
                 if(GameOver)
                 {
                     //TODO: end game
-                    JOptionPane.showMessageDialog(null, "you win yeah");
-                }else{
-                    int chosenIndex = RNG.nextInt(boxesToShoot.size());
-                    int row = boxesToShoot.get(chosenIndex) / 10;
-                    int column = boxesToShoot.get(chosenIndex) % 10;
-                    boxesToShoot.remove(chosenIndex);
-                    shootBox(playerBoxes[row][column], playerBoxes);
+                    endGame(true);
                 }
-
-            }
-        }
-    }
-
-    public void shootBox(Box target, Box[][]board)
-    {
-        if (target.state == Box.BOAT)
-        {
-            target.hasBeenHit = true;
-            int type = target.boatType;
-
-            int beginningX = target.beginningX;
-            int beginningY = target.beginningY;
-
-            boolean allPartsHit = true;
-            for (int i = 0; i < type+1; i++)
-            {
-                int column = beginningX + (i*boolToInt(target.isHorizontal));
-                int row = beginningY + (i*boolToInt(!target.isHorizontal));
-                if(!board[row][column].hasBeenHit)
+                else if(!didHitABoat)
                 {
-                    allPartsHit = false;
+                    boolean enemyHit = true;
+                    while(enemyHit)
+                    {
+                        int chosenIndex = RNG.nextInt(boxesToShoot.size());
+                        int row = boxesToShoot.get(chosenIndex) / 10;
+                        int column = boxesToShoot.get(chosenIndex) % 10;
+                        boxesToShoot.remove(chosenIndex);
+                        enemyHit = shootBox(playerBoxes[row][column], playerBoxes);
+
+                        boolean noMoreBoats = true;
+                        for(int y=0; y<playerBoxes.length;y++)
+                        {
+                            for(int x=0; x<playerBoxes[y].length; x++)
+                            {
+                                if(playerBoxes[y][x].state == Box.BOAT)
+                                {
+                                    noMoreBoats = false;
+                                }
+                            }
+                        }
+                        if(noMoreBoats)
+                        {
+                            enemyHit = false;
+                            endGame(false);
+                        }
+                    }
                 }
+
             }
-            if (allPartsHit)
-            {
-                for (int i = 0; i < type+1; i++)
-                {
-                    int column = beginningX + (i*boolToInt(target.isHorizontal));
-                    int row = beginningY + (i*boolToInt(!target.isHorizontal));
-                    board[row][column].setState(Box.SUNKEN);
-                    board[row][column].setText("3");//TODO: put images instead of numbers
-                }
-            } else {
-                target.setState(Box.HIT);
-                target.setText("2");
-            }
-        } else {
-            target.setState(Box.WATER);
-            target.setText("0");
         }
     }
 
@@ -442,12 +509,23 @@ public class Window extends JFrame
                 {
                     if(enemyBoxes[row][column].state == Box.BOAT)
                     {
+                        Box box = enemyBoxes[row][column];
+                        ImageIcon image;
                         if(isShowing)
                         {
-                            enemyBoxes[row][column].setText("1");
+                            String orientation;
+                            if(box.isHorizontal)
+                            {
+                                orientation = "h";
+                            }else{
+                                orientation = "v";
+                            }
+                            String resPath = "/resources/"+ orientation + box.boatType + box.partNumber+".png";
+                            image = new ImageIcon(getClass().getResource(resPath));
                         }else{
-                            enemyBoxes[row][column].setText("");
+                            image = new ImageIcon(getClass().getResource("/resources/empty.png"));
                         }
+                        box.setIcon(image);
                     }
                 }
             }
