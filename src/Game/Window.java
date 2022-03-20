@@ -160,7 +160,7 @@ public class Window extends JFrame
             boxesToShoot.add(i);
         }
 
-        //RANDOMLY PLACING ENEMY BOATS ___________________h___________________________________________
+        //RANDOMLY PLACING ENEMY BOATS ______________________________________________________________
         RNG = new Random();
         for(int boatType=3; boatType >= 0; boatType--)
         {
@@ -204,10 +204,10 @@ public class Window extends JFrame
                     }
                     thisBox.isOccupied = true;
                     thisBox.isHorizontal = placeHorizontally;
-                    thisBox.setState(Box.BOAT);
-                    thisBox.setType(boatType);
-                    thisBox.setBoatIndex(boatsOfThisType);
-                    thisBox.setPart(currentPart);
+                    thisBox.state = Box.BOAT;
+                    thisBox.boatType = boatType;
+                    thisBox.boatIndex = boatsOfThisType;
+                    thisBox.partNumber = currentPart;
                     thisBox.beginningX = column;
                     thisBox.beginningY = row;
                 }
@@ -244,16 +244,16 @@ public class Window extends JFrame
                 {
                     int column = beginningX + (i*boolToInt(target.isHorizontal));
                     int row = beginningY + (i*boolToInt(!target.isHorizontal));
-                    board[row][column].setState(Box.SUNKEN);
+                    board[row][column].state = Box.SUNKEN;
                     board[row][column].setIcon(new ImageIcon(getClass().getResource("/resources/sunken.png")));
                 }
             } else {
-                target.setState(Box.HIT);
+                target.state = Box.HIT;
                 target.setIcon(new ImageIcon(getClass().getResource("/resources/hit.png")));
             }
             return true;
         } else {
-            target.setState(Box.WATER);
+            target.state = Box.WATER;
             target.setIcon(new ImageIcon(getClass().getResource("/resources/water.png")));
             return false;
         }
@@ -308,8 +308,8 @@ public class Window extends JFrame
                     currentBox.boatIndex = boatsToPlace[typeSelected] - 1;
                     currentBox.boatType = typeSelected;
                     currentBox.isHorizontal = horizontalOrientation;
-                    currentBox.setState(Box.BOAT);
-                    currentBox.setPart(i);
+                    currentBox.state = Box.BOAT;
+                    currentBox.partNumber = i;
                     currentBox.beginningX = beginningX;
                     currentBox.beginningY = beginningY;
                 }
@@ -325,10 +325,9 @@ public class Window extends JFrame
                     {
                         allBoatsSet = false;
                     }
-                }//TODO: activate a button when all boats are set.
+                }
                 if(allBoatsSet)
                 {
-                    //TODO: start second phase when all boats are set
                     placingBoats = false;
                     for(int y=0; y<playerBoxes.length; y++)
                     {
@@ -356,8 +355,8 @@ public class Window extends JFrame
         {
             if (placingBoats)
             {
-                int boxX = ((Box)e.getSource()).getColumn();
-                int boxY = ((Box)e.getSource()).getRow();
+                int boxX = ((Box)e.getSource()).column;
+                int boxY = ((Box)e.getSource()).row;
                 int boatLength = typeSelected + 1;
 
                 String orientation;
@@ -388,9 +387,9 @@ public class Window extends JFrame
         @Override
         public void mouseExited(MouseEvent e)
         {
-            int boxX = ((Box)e.getSource()).getColumn();
-            int boxY = ((Box)e.getSource()).getRow();
-            ((Box)e.getSource()).setPressed(false);
+            int boxX = ((Box)e.getSource()).column;
+            int boxY = ((Box)e.getSource()).row;
+            ((Box)e.getSource()).isPressed = false;
             int boatLength = typeSelected + 1;
             for(int i = 0; i < boatLength; i++)
             {
@@ -401,7 +400,7 @@ public class Window extends JFrame
                     String resPath = "/resources/empty.png";
                     ImageIcon image = new ImageIcon(getClass().getResource(resPath));
                     playerBoxes[row][column].setIcon(image);
-                    playerBoxes[row][column].select(true);
+                    playerBoxes[row][column].isSelected = true;
                 }
             }
         }

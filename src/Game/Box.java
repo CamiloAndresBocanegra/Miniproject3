@@ -28,60 +28,9 @@ public class Box extends JButton
 
     int state;
 
-    public void setState(int value)
-    {
-        state = value;
-    }
-
-    public void setHasBeenHit(boolean value)
-    {
-        hasBeenHit = value;
-    }
-
-    public void setHorizontal(boolean value)
-    {
-        isHorizontal = value;
-    }
-
-    public void setPart(int part)
-    {
-        partNumber = part;
-    }
-
-    public void setType(int type)
-    {
-        boatType = type;
-    }
-
-    public void setBoatIndex(int value)
-    {
-        boatIndex = value;
-    }
-
     public void setPosition(int x, int y)
     {
         column = x;
         row = y;
     }
-    public int getColumn()
-    {
-        return column;
-    }
-    public int getRow()
-    {
-        return row;
-    }
-
-    public void setPressed(boolean value)
-    {
-        isPressed = value;
-    }
-
-    public void setOccupied(boolean value){isOccupied = value;}
-
-    public void select(boolean value)
-    {
-        isSelected = value;
-    }
-
 }
